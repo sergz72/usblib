@@ -88,13 +88,14 @@ void USB_Device_CH32X035::Init(USB_DeviceManager *m)
 {
   manager = m;
 
-  AssignEndpointsBuffers();
-  AssignEndpointsModes();
-
   // VDD = 3.3v, D+ line pullup = 1.5k
   AFIO->CTLR = (AFIO->CTLR & ~(UDP_PUE_MASK | UDM_PUE_MASK )) | USB_PHY_V33 | UDP_PUE_1K5 | USB_IOEN;
 
-  USBFSD->DEV_ADDR = 0;
+  USBFSD->BASE_CTRL = 0x00;
+
+  AssignEndpointsModes();
+  AssignEndpointsBuffers();
+
   USBFSD->BASE_CTRL = USBFS_UC_INT_BUSY | USBFS_UC_DMA_EN;
   USBFSD->INT_FG = 0xFF;
   USBFSD->UDEV_CTRL = USBFS_UD_PD_DIS | USBFS_UD_PORT_EN;
@@ -361,15 +362,52 @@ void ToggleRX(unsigned int endpoint)
 
 void ToggleTX(unsigned int endpoint)
 {
+  unsigned short temp;
+
   switch (endpoint)
   {
-    case 0: USBFSD->UEP0_CTRL_H ^= USBFS_UEP_T_TOG; break;
-    case 1: USBFSD->UEP1_CTRL_H ^= USBFS_UEP_T_TOG; break;
-    case 2: USBFSD->UEP2_CTRL_H ^= USBFS_UEP_T_TOG; break;
-    case 3: USBFSD->UEP3_CTRL_H ^= USBFS_UEP_T_TOG; break;
-    case 5: USBFSD->UEP5_CTRL_H ^= USBFS_UEP_T_TOG; break;
-    case 6: USBFSD->UEP6_CTRL_H ^= USBFS_UEP_T_TOG; break;
-    case 7: USBFSD->UEP7_CTRL_H ^= USBFS_UEP_T_TOG; break;
+    case 0:
+      temp = USBFSD->UEP0_CTRL_H & ~USBFS_UEP_T_RES_MASK;
+      temp ^= USBFS_UEP_T_TOG;
+      temp |= USBFS_UEP_T_RES_NAK;
+      USBFSD->UEP0_CTRL_H = temp;
+      break;
+    case 1:
+      temp = USBFSD->UEP1_CTRL_H & ~USBFS_UEP_T_RES_MASK;
+      temp ^= USBFS_UEP_T_TOG;
+      temp |= USBFS_UEP_T_RES_NAK;
+      USBFSD->UEP1_CTRL_H = temp;
+      break;
+    case 2:
+      temp = USBFSD->UEP2_CTRL_H & ~USBFS_UEP_T_RES_MASK;
+      temp ^= USBFS_UEP_T_TOG;
+      temp |= USBFS_UEP_T_RES_NAK;
+      USBFSD->UEP2_CTRL_H = temp;
+      break;
+    case 3:
+      temp = USBFSD->UEP3_CTRL_H & ~USBFS_UEP_T_RES_MASK;
+      temp ^= USBFS_UEP_T_TOG;
+      temp |= USBFS_UEP_T_RES_NAK;
+      USBFSD->UEP3_CTRL_H = temp;
+      break;
+    case 5:
+      temp = USBFSD->UEP5_CTRL_H & ~USBFS_UEP_T_RES_MASK;
+      temp ^= USBFS_UEP_T_TOG;
+      temp |= USBFS_UEP_T_RES_NAK;
+      USBFSD->UEP5_CTRL_H = temp;
+      break;
+    case 6:
+      temp = USBFSD->UEP6_CTRL_H & ~USBFS_UEP_T_RES_MASK;
+      temp ^= USBFS_UEP_T_TOG;
+      temp |= USBFS_UEP_T_RES_NAK;
+      USBFSD->UEP6_CTRL_H = temp;
+      break;
+    case 7:
+      temp = USBFSD->UEP7_CTRL_H & ~USBFS_UEP_T_RES_MASK;
+      temp ^= USBFS_UEP_T_TOG;
+      temp |= USBFS_UEP_T_RES_NAK;
+      USBFSD->UEP7_CTRL_H = temp;
+      break;
     default: break;
   }
 }
