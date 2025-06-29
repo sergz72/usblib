@@ -7,7 +7,7 @@
 
 ### MCU support:
 - STM32H5 (tested on STM32H503)
-- CH32X035 - in progress
+- CH32X035
 
 ### Development and testing plans:
 - STM32H7
