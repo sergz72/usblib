@@ -8,6 +8,9 @@
 ### MCU support:
 - STM32H5 (tested on STM32H503)
 - STM32G4 (tested on STM32G431)
+- STM32F4 (tested on STM32F411)
+- STM32F3 (tested on STM32F303)
+- STM32F7 (tested on STM32F767 - FS & HS)
 - CH32X035
 
 ### Development and testing plans:
@@ -20,6 +23,3 @@
 - MSPM0G3507
 - MCXN236VDF
 - XMC4700
-- STM32F4
-- STM32F3
-- STM32F7
