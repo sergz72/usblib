@@ -24,34 +24,6 @@
 #define DSTS_ENUMSPD_LS_PHY_6MHZ               (2 << 1)
 #define DSTS_ENUMSPD_FS_PHY_48MHZ              (3 << 1)
 
-static void AssignEndpointBuffers(unsigned int endpoint, unsigned int rxaddress, unsigned int txaddress,
-                                  unsigned int max_transfer_size)
-{
-  unsigned int num_blocks = max_transfer_size <= 64 ? 1 : max_transfer_size / 32 - 1;
-  USB_STM32F_PMABuffDescTypeDef *buf = USB_STM32F_PMA_BUFF + endpoint;
-  buf->RXBD = rxaddress | (num_blocks << 26) | (1 << 31); // 32 byte blocks
-  buf->TXBD = txaddress;
-}
-
-void USB_Device_STM32F::AssignEndpointsBuffers()
-{
-  unsigned int address = PMAADDR_OFFSET;
-  unsigned char *buf = (unsigned char*)USB_STM32F_PMAADDR;
-  for (unsigned int i = 0; i <= 7; i++)
-  {
-    unsigned int max_transfer_size = manager->GetEndpointMaxTransferSize(i);
-    if (max_transfer_size)
-    {
-      unsigned int offset_rx = address;
-      unsigned int offset_tx = address + max_transfer_size;
-      AssignEndpointBuffers(i, offset_rx, offset_tx, max_transfer_size);
-      address = offset_tx + max_transfer_size;
-      endpoint_buffers_rx[i] = buf + offset_rx;
-      endpoint_buffers_tx[i] = buf + offset_tx;
-    }
-  }
-}
-
 /**
   * @brief  USB_SetDevSpeed :Initializes the DevSpd field of DCFG register
   *         depending the PHY type and the enumeration speed of the device.
@@ -124,9 +96,43 @@ void USB_Device_STM32F::USB_CoreInit()
       instance->GUSBCFG |= USB_OTG_GUSBCFG_ULPIEVBUSD;
     /* Reset after a PHY select  */
     USB_CoreReset(instance);
+
+    // enable dma
+    instance->GAHBCFG |= USB_OTG_GAHBCFG_HBSTLEN_1 | USB_OTG_GAHBCFG_HBSTLEN_2;
+    instance->GAHBCFG |= USB_OTG_GAHBCFG_DMAEN;
   }
-  instance->GAHBCFG |= (USB_OTG_GAHBCFG_HBSTLEN_1 | USB_OTG_GAHBCFG_HBSTLEN_2);
-  instance->GAHBCFG |= USB_OTG_GAHBCFG_DMAEN;
+}
+
+static void USB_FlushTxFifo(USB_OTG_GlobalTypeDef *instance, unsigned int num)
+{
+  unsigned int count = 0;
+
+  instance->GRSTCTL = ( USB_OTG_GRSTCTL_TXFFLSH | ( num << 6));
+
+  do
+  {
+    if (++count > 200000)
+    {
+      while (1);
+    }
+  }
+  while ((instance->GRSTCTL & USB_OTG_GRSTCTL_TXFFLSH) == USB_OTG_GRSTCTL_TXFFLSH);
+}
+
+static void USB_FlushRxFifo(USB_OTG_GlobalTypeDef *instance)
+{
+  unsigned int count = 0;
+
+  instance->GRSTCTL = USB_OTG_GRSTCTL_RXFFLSH;
+
+  do
+  {
+    if (++count > 200000)
+    {
+      while(1);
+    }
+  }
+  while ((instance->GRSTCTL & USB_OTG_GRSTCTL_RXFFLSH) == USB_OTG_GRSTCTL_RXFFLSH);
 }
 
 /**
@@ -211,8 +217,8 @@ void USB_Device_STM32F::USB_DevInit()
   }
 
   /* Flush the FIFOs */
-  USB_FlushTxFifo(0x10); /* all Tx FIFOs */
-  USB_FlushRxFifo();
+  USB_FlushTxFifo(instance, 0x10); /* all Tx FIFOs */
+  USB_FlushRxFifo(instance);
 
   /* Clear all pending Device Interrupts */
   USBx_DEVICE(instance)->DIEPMSK = 0;
@@ -220,43 +226,42 @@ void USB_Device_STM32F::USB_DevInit()
   USBx_DEVICE(instance)->DAINT = 0xFFFFFFFF;
   USBx_DEVICE(instance)->DAINTMSK = 0;
 
-  for (i = 0; i < USBHandle.Cfg->dev_endpoints; i++)
+  for (i = 0; i < USB_MAX_ENDPOINTS; i++)
   {
-    if ((USBx_INEP(i)->DIEPCTL & USB_OTG_DIEPCTL_EPENA) == USB_OTG_DIEPCTL_EPENA)
-    {
-      USBx_INEP(i)->DIEPCTL = (USB_OTG_DIEPCTL_EPDIS | USB_OTG_DIEPCTL_SNAK);
-    }
+    if ((USBx_INEP(instance, i)->DIEPCTL & USB_OTG_DIEPCTL_EPENA) == USB_OTG_DIEPCTL_EPENA)
+      USBx_INEP(instance, i)->DIEPCTL = USB_OTG_DIEPCTL_EPDIS | USB_OTG_DIEPCTL_SNAK;
     else
-    {
-      USBx_INEP(i)->DIEPCTL = 0;
-    }
+      USBx_INEP(instance, i)->DIEPCTL = 0;
 
-    USBx_INEP(i)->DIEPTSIZ = 0;
-    USBx_INEP(i)->DIEPINT  = 0xFF;
+    USBx_INEP(instance, i)->DIEPTSIZ = 0;
+    USBx_INEP(instance, i)->DIEPINT  = 0xFF;
   }
 
-  for (i = 0; i < USBHandle.Cfg->dev_endpoints; i++)
+  for (i = 0; i < USB_MAX_ENDPOINTS; i++)
   {
-    if ((USBx_OUTEP(i)->DOEPCTL & USB_OTG_DOEPCTL_EPENA) == USB_OTG_DOEPCTL_EPENA)
+    if ((USBx_OUTEP(instance, i)->DOEPCTL & USB_OTG_DOEPCTL_EPENA) == USB_OTG_DOEPCTL_EPENA)
     {
-      USBx_OUTEP(i)->DOEPCTL = (USB_OTG_DOEPCTL_EPDIS | USB_OTG_DOEPCTL_SNAK);
+      USBx_OUTEP(instance, i)->DOEPCTL = (USB_OTG_DOEPCTL_EPDIS | USB_OTG_DOEPCTL_SNAK);
     }
     else
     {
-      USBx_OUTEP(i)->DOEPCTL = 0;
+      USBx_OUTEP(instance, i)->DOEPCTL = 0;
     }
 
-    USBx_OUTEP(i)->DOEPTSIZ = 0;
-    USBx_OUTEP(i)->DOEPINT  = 0xFF;
+    USBx_OUTEP(instance, i)->DOEPTSIZ = 0;
+    USBx_OUTEP(instance, i)->DOEPINT  = 0xFF;
   }
 
   USBx_DEVICE(instance)->DIEPMSK &= ~(USB_OTG_DIEPMSK_TXFURM);
 
-  /*Set threshold parameters */
-  USBx_DEVICE(instance)->DTHRCTL = (USB_OTG_DTHRCTL_TXTHRLEN_6 | USB_OTG_DTHRCTL_RXTHRLEN_6);
-  USBx_DEVICE(instance)->DTHRCTL |= (USB_OTG_DTHRCTL_RXTHREN | USB_OTG_DTHRCTL_ISOTHREN | USB_OTG_DTHRCTL_NONISOTHREN);
+  if (instance != USB_OTG_FS) // dma setup
+  {
+    /*Set threshold parameters */
+    USBx_DEVICE(instance)->DTHRCTL = (USB_OTG_DTHRCTL_TXTHRLEN_6 | USB_OTG_DTHRCTL_RXTHRLEN_6);
+    USBx_DEVICE(instance)->DTHRCTL |= (USB_OTG_DTHRCTL_RXTHREN | USB_OTG_DTHRCTL_ISOTHREN | USB_OTG_DTHRCTL_NONISOTHREN);
 
-  i= USBx_DEVICE(instance)->DTHRCTL;
+    i= USBx_DEVICE(instance)->DTHRCTL;
+  }
 
   /* Disable all interrupts. */
   instance->GINTMSK = 0;
@@ -264,27 +269,65 @@ void USB_Device_STM32F::USB_DevInit()
   /* Clear any pending interrupts */
   instance->GINTSTS = 0xBFFFFFFF;
 
-  instance->GINTMSK |= USB_OTG_GINTMSK_RXFLVLM;
+  if (instance == USB_OTG_FS)
+    instance->GINTMSK |= USB_OTG_GINTMSK_RXFLVLM;
 
   /* Enable interrupts matching to the Device mode ONLY */
   instance->GINTMSK |= (USB_OTG_GINTMSK_USBSUSPM | USB_OTG_GINTMSK_USBRST |\
                     USB_OTG_GINTMSK_ENUMDNEM | USB_OTG_GINTMSK_IEPINT |\
                     USB_OTG_GINTMSK_OEPINT   | USB_OTG_GINTMSK_IISOIXFRM|\
-                    USB_OTG_GINTMSK_PXFRM_IISOOXFRM | USB_OTG_GINTMSK_WUIM | USB_OTG_GINTMSK_SOFM);
+                    USB_OTG_GINTMSK_PXFRM_IISOOXFRM | USB_OTG_GINTMSK_WUIM);
+
+  if (manager->SofShouldBeEnabled())
+    instance->GINTMSK |= USB_OTG_GINTMSK_SOFM;
 
   if (cfg->vbus_sensing_enable)
-    instance->GINTMSK |= (USB_OTG_GINTMSK_SRQIM | USB_OTG_GINTMSK_OTGINT);
+    instance->GINTMSK |= USB_OTG_GINTMSK_SRQIM | USB_OTG_GINTMSK_OTGINT;
+}
+
+void USB_SetRxFiFo(USB_OTG_GlobalTypeDef *instance, unsigned int size)
+{
+  instance->GRXFSIZ = size;
+}
+
+void USB_SetTxFiFo(USB_OTG_GlobalTypeDef *instance, unsigned int fifo, unsigned int offset, unsigned int size)
+{
+  if (!fifo)
+    instance->DIEPTXF0_HNPTXFSIZ = (size << 16) | offset;
+  else
+    instance->DIEPTXF[fifo - 1] = (size << 16) | offset;
+}
+
+void USB_Device_STM32F::USB_FIFO_Init() const
+{
+  unsigned int i, max_size = 0;
+
+  for (i = 0; i < USB_MAX_ENDPOINTS; i++)
+  {
+    unsigned int size = manager->GetEndpointMaxTransferSize(i);
+    if (size > max_size)
+      max_size = size;
+  }
+  USB_SetRxFiFo(instance, max_size);
+  unsigned int offset = max_size;
+  for (i = 0; i < USB_MAX_ENDPOINTS; i++)
+  {
+    unsigned int size = manager->GetEndpointMaxTransferSize(i);
+    USB_SetTxFiFo(instance, i, offset, size);
+    offset += size;
+  }
 }
 
 void USB_Device_STM32F::Init(USB_DeviceManager *m)
 {
   manager = m;
-  AssignEndpointsBuffers();
   USB_CoreInit();
   // Set device mode
   instance->GUSBCFG |= USB_OTG_GUSBCFG_FDMOD;
   delayms(50);
   USB_DevInit();
+  //AssignEndpointsBuffers();
+  USB_FIFO_Init();
 
   //Enables the controller's Global Int in the AHB Config reg
   instance->GAHBCFG |= USB_OTG_GAHBCFG_GINT;
@@ -292,7 +335,7 @@ void USB_Device_STM32F::Init(USB_DeviceManager *m)
 
 void USB_Device_STM32F::Reset()
 {
-  USB_STM32F_FS->DADDR = USB_DADDR_EF;
+  SetAddress(0);
 }
 
 void USB_Device_STM32F::Connect()
@@ -301,136 +344,48 @@ void USB_Device_STM32F::Connect()
   //delayms(3);
 }
 
-#define CHEP_RESET ~(USB_CHEP_TX_STTX | USB_CHEP_RX_STRX | USB_CHEP_DTOG_RX | USB_CHEP_DTOG_TX)
-#define CHEP_Read(reg) *reg & CHEP_RESET
-
 void USB_Device_STM32F::SetEndpointTransferType(unsigned int endpoint, USBEndpointTransferType transfer_type)
 {
-  endpoint &= 0x0F;
-  unsigned long epkind;
-  switch (transfer_type)
-  {
-    case usb_endpoint_transfer_type_control: epkind = 1 << 9; break;
-    case usb_endpoint_transfer_type_isochronous: epkind = 2 << 9; break;
-    case usb_endpoint_transfer_type_interrupt: epkind = 3 << 9; break;
-    default: epkind = 0; break;
-  }
-  volatile unsigned long *reg = &USB_STM32F_FS->CHEP0R + endpoint;
-  unsigned long value = CHEP_Read(reg);
-  value |= endpoint | epkind;
-  *reg = value;
+  //todo
 }
 
 void USB_Device_STM32F::ConfigureEndpoint(unsigned int endpoint_no, USBEndpointConfiguration rx_config,
                                         USBEndpointConfiguration tx_config)
 {
-  volatile unsigned long *reg = &USB_STM32F_FS->CHEP0R + endpoint_no;
-  unsigned long value = *reg;
-  unsigned int state = value & (USB_CHEP_RX_STRX | USB_CHEP_TX_STTX);
-  state ^= (rx_config << 12) | (tx_config << 4);
-  value &= CHEP_RESET;
-  value |= state;
-  *reg = value;
+  //todo
 }
 
 void USB_Device_STM32F::ConfigureEndpointRX(unsigned int endpoint_no, USBEndpointConfiguration config)
 {
-  volatile unsigned long *reg = &USB_STM32F_FS->CHEP0R + endpoint_no;
-  unsigned long value = *reg;
-  unsigned int state = value & USB_CHEP_RX_STRX;
-  state ^= config << 12;
-  value &= CHEP_RESET;
-  value |= state;
-  *reg = value;
+  //todo
 }
 
 void USB_Device_STM32F::ConfigureEndpointTX(unsigned int endpoint_no, USBEndpointConfiguration config)
 {
-  volatile unsigned long *reg = &USB_STM32F_FS->CHEP0R + endpoint_no;
-  unsigned long value = *reg;
-  unsigned int state = value & USB_CHEP_TX_STTX;
-  state ^= config << 4;
-  value &= CHEP_RESET;
-  value |= state;
-  *reg = value;
+  //todo
 }
 
 void USB_Device_STM32F::SetEndpointData(unsigned endpoint_no, const void *data, unsigned int length)
 {
-  CopyToPMA32(endpoint_no, data, length);
-  USB_STM32F_PMABuffDescTypeDef *buff = USB_STM32F_PMA_BUFF + endpoint_no;
-  unsigned int temp = buff->TXBD & 0xFC00FFFF;
-  buff->TXBD = temp | (length << 16);
+  //todo
   ConfigureEndpointTX(endpoint_no, usb_endpoint_configuration_enabled);
 }
 
 void USB_Device_STM32F::ZeroTransfer(unsigned int endpoint_no)
 {
-  USB_STM32F_PMABuffDescTypeDef *buff = USB_STM32F_PMA_BUFF + endpoint_no;
-  buff->TXBD &= 0xFC00FFFF;
+  //todo
   ConfigureEndpointTX(endpoint_no, usb_endpoint_configuration_enabled);
 }
 
 unsigned int GetEndpointRxLength(unsigned int endpoint)
 {
-  USB_STM32F_PMABuffDescTypeDef *buff = USB_STM32F_PMA_BUFF + endpoint;
-  return (buff->RXBD & 0x3ff0000) >> 16;
+  //todo
+  return 0;
 }
 
 void USB_Device_STM32F::InterruptHandler()
 {
-  unsigned int istr = USB_STM32F_FS->ISTR;
-  if (istr & USB_ISTR_CTR)
-  {
-    unsigned int endpoint = istr & 0x0F;
-    volatile unsigned long *reg = &USB_STM32F_FS->CHEP0R + endpoint;
-    unsigned long value = CHEP_Read(reg);
-    if (value & 0x8080) //vttx or vtrx
-    {
-      unsigned int out = value & 0x8000;
-      value &= ~0x8080;
-      *reg = value;
-      if (out)
-      {
-        if (value & 0x800) // setup
-        {
-          CopyFromPMA32(endpoint, endpoint_buffers_rx[endpoint], 8);
-          manager->SetupPacketReceived(endpoint_buffers_rx[endpoint]);
-        }
-        else
-        {
-          unsigned int l = GetEndpointRxLength(endpoint);
-          CopyFromPMA32(endpoint, endpoint_buffers_rx[endpoint], l);
-          manager->DataPacketReceived(endpoint, endpoint_buffers_rx[endpoint], l);
-        }
-      }
-      else
-        manager->ContinueTransfer(endpoint);
-    }
-    USB_STM32F_FS->ISTR &= ~USB_ISTR_CTR;
-    return;
-  }
-  if (istr & USB_ISTR_SOF)
-  {
-    manager->Sof();
-    USB_STM32F_FS->ISTR &= ~USB_ISTR_SOF;
-    return;
-  }
-  if (istr & USB_ISTR_DCON)
-  {
-    manager->Reset();
-    USB_STM32F_FS->ISTR &= ~USB_ISTR_DCON;
-    return;
-  }
-  if (istr & USB_ISTR_SUSP)
-  {
-    USB_STM32F_FS->CNTR |= USB_CNTR_SUSPEN;
-    manager->Suspend();
-  }
-  if (istr & USB_ISTR_WKUP)
-    manager->Resume();
-  // clear all interrupt requests
-  USB_STM32F_FS->ISTR = 0;
+  //todo
 }
 
 void USB_Device_STM32F::SetAddress(unsigned short address)

@@ -152,8 +152,8 @@ typedef struct
 {
   unsigned char num_interfaces;
   const char *configuration_name;
-  int self_powered;
-  int remote_wakeup;
+  bool self_powered;
+  bool remote_wakeup;
   unsigned int max_power;
 } USBConfigurationDescriptor;
 
@@ -249,6 +249,8 @@ class USB_DeviceManager: public USB_Class
     unsigned short set_address;
     unsigned char language_id_descriptor[4];
     unsigned short device_status;
+    bool sof_enable;
+    bool remote_wakeup;
 
     void InterfaceRequestHandler(USBDeviceRequest *request);
     void ClassInterfaceRequestHandler(USBDeviceRequest *request);
@@ -288,6 +290,8 @@ public:
     void PacketReceived(unsigned int endpoint, void *data, unsigned int length) override;
     void SetupInterface(USBDeviceRequest *request) override;
     int StartTransfer(unsigned int endpoint, const void *buffer, unsigned int length);
+    bool SofShouldBeEnabled() const { return sof_enable; }
+    bool RemoteWakeupShouldBeEnabled() const { return remote_wakeup; }
 };
 
 #endif

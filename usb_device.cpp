@@ -21,6 +21,8 @@ USB_DeviceManager::USB_DeviceManager(const USBDeviceConfiguration *conf,
   const USBConfigurationDescriptor *configuration_descriptor, USB_Device *dev)
 {
   device = dev;
+  remote_wakeup = configuration_descriptor->remote_wakeup;
+  sof_enable = false;
   config = conf;
   next_string_id = 1;
   next_interface_id = 0;
@@ -209,6 +211,8 @@ void USB_DeviceManager::AddEndpointDescriptor(const USBEndpointDescriptor *endpo
   *next_descriptor_ptr++ = endpoint->max_packet_size & 0xFF;
   *next_descriptor_ptr++ = endpoint->max_packet_size >> 8;
   *next_descriptor_ptr++ = endpoint->interval;
+  if (endpoint->transfer_type == usb_endpoint_transfer_type_isochronous)
+    sof_enable = true;
 }
 
 unsigned int USB_DeviceManager::AddEndpointDescriptor(USB_Class *handler, const USBEndpointDescriptor *endpoint)

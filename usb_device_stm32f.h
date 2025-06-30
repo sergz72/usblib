@@ -5,9 +5,8 @@
 
 typedef struct
 {
-  unsigned int vbus_sensing_enable;  /*!< Enable or disable the VBUS Sensing feature.                            */
-  unsigned int use_external_vbus;    /*!< Enable or disable the use of the external VBUS.                        */
-  unsigned int dev_remote_wakeup;
+  bool vbus_sensing_enable;  /*!< Enable or disable the VBUS Sensing feature.                            */
+  bool use_external_vbus;    /*!< Enable or disable the use of the external VBUS.                        */
 } USB_OTG_CfgTypeDef;
 
 class USB_Device_STM32F: public USB_Device {
@@ -17,7 +16,7 @@ class USB_Device_STM32F: public USB_Device {
 
     void USB_CoreInit();
     void USB_DevInit();
-    void AssignEndpointsBuffers();
+    void USB_FIFO_Init() const;
 public:
     explicit USB_Device_STM32F(USB_OTG_GlobalTypeDef *_instance, const USB_OTG_CfgTypeDef *_cfg)
     {
