@@ -169,6 +169,13 @@ class USB_DeviceManager;
 
 class USB_Device
 {
+  protected:
+    virtual void *GetEndpointInBuffer(unsigned int endpoint) const = 0;
+    virtual void *GetEndpointOutBuffer(unsigned int endpoint) const = 0;
+    void CopyToPMA32(unsigned int endpoint_no, const void *data, unsigned int length) const;
+    void CopyFromPMA32(unsigned int endpoint_no, void *data, unsigned int length) const;
+    void CopyToPMA16(unsigned int endpoint_no, const void *data, unsigned int length) const;
+    void CopyFromPMA16(unsigned int endpoint_no, void *data, unsigned int length) const;
   public:
     virtual void Init(USB_DeviceManager *m) = 0;
     virtual void ConfigureEndpoint(unsigned int endpoint_no, USBEndpointConfiguration rx_config,

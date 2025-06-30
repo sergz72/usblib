@@ -551,3 +551,77 @@ void USB_DeviceManager::SetupInterface(USBDeviceRequest *request)
 {
   device->ConfigureEndpoint(0, usb_endpoint_configuration_stall, usb_endpoint_configuration_stall);
 }
+
+void USB_Device::CopyToPMA32(unsigned int endpoint_no, const void *data, unsigned int length) const
+{
+  unsigned int *buffer = (unsigned int*)GetEndpointOutBuffer(endpoint_no);
+  unsigned char *d = (unsigned char*)data;
+  if (length)
+  {
+    while (1)
+    {
+      unsigned int v = __UNALIGNED_UINT32_READ(d);
+      *buffer++ = v;
+      if (length > 4)
+        length -= 4;
+      else
+        break;
+      d += 4;
+    }
+  }
+}
+
+void USB_Device::CopyFromPMA32(unsigned int endpoint_no, void *data, unsigned int length) const
+{
+  unsigned int *buffer = (unsigned int*)GetEndpointInBuffer(endpoint_no);
+  unsigned char *d = (unsigned char*)data;
+  if (length)
+  {
+    while (1)
+    {
+      __UNALIGNED_UINT32_WRITE(d, *buffer++);
+      if (length > 4)
+        length -= 4;
+      else
+        break;
+      d += 4;
+    }
+  }
+}
+
+void USB_Device::CopyToPMA16(unsigned int endpoint_no, const void *data, unsigned int length) const
+{
+  unsigned short *buffer = (unsigned short*)GetEndpointOutBuffer(endpoint_no);
+  unsigned char *d = (unsigned char*)data;
+  if (length)
+  {
+    while (1)
+    {
+      unsigned int v = __UNALIGNED_UINT16_READ(d);
+      *buffer++ = v;
+      if (length > 2)
+        length -= 2;
+      else
+        break;
+      d += 2;
+    }
+  }
+}
+
+void USB_Device::CopyFromPMA16(unsigned int endpoint_no, void *data, unsigned int length) const
+{
+  unsigned short *buffer = (unsigned short*)GetEndpointInBuffer(endpoint_no);
+  unsigned char *d = (unsigned char*)data;
+  if (length)
+  {
+    while (1)
+    {
+      __UNALIGNED_UINT16_WRITE(d, *buffer++);
+      if (length > 2)
+        length -= 2;
+      else
+        break;
+      d += 2;
+    }
+  }
+}

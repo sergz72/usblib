@@ -7,7 +7,7 @@
 static void AssignEndpointBuffers(unsigned int endpoint, unsigned int rxaddress, unsigned int txaddress,
                                   unsigned int max_transfer_size)
 {
-  unsigned int num_blocks = max_transfer_size <= 64 ? 1 : max_transfer_size / 64 - 1;
+  unsigned int num_blocks = max_transfer_size <= 64 ? 1 : max_transfer_size / 32 - 1;
   USB_DRD_PMABuffDescTypeDef *buf = USB_DRD_PMA_BUFF + endpoint;
   buf->RXBD = rxaddress | (num_blocks << 26) | (1 << 31); // 32 byte blocks
   buf->TXBD = txaddress;
@@ -119,46 +119,9 @@ void *USB_Device_DRD::GetEndpointOutBuffer(unsigned int endpoint) const
   return endpoint_buffers_tx[endpoint];
 }
 
-void USB_Device_DRD::CopyToPMA(unsigned int endpoint_no, const void *data, unsigned int length) const
-{
-  unsigned int *buffer = (unsigned int*)GetEndpointOutBuffer(endpoint_no);
-  unsigned char *d = (unsigned char*)data;
-  if (length)
-  {
-    while (1)
-    {
-      unsigned int v = __UNALIGNED_UINT32_READ(d);
-      *buffer++ = v;
-      if (length > 4)
-        length -= 4;
-      else
-        break;
-      d += 4;
-    }
-  }
-}
-
-void USB_Device_DRD::CopyFromPMA(unsigned int endpoint_no, void *data, unsigned int length) const
-{
-  unsigned int *buffer = (unsigned int*)GetEndpointInBuffer(endpoint_no);
-  unsigned char *d = (unsigned char*)data;
-  if (length)
-  {
-    while (1)
-    {
-      __UNALIGNED_UINT32_WRITE(d, *buffer++);
-      if (length > 4)
-        length -= 4;
-      else
-        break;
-      d += 4;
-    }
-  }
-}
-
 void USB_Device_DRD::SetEndpointData(unsigned endpoint_no, const void *data, unsigned int length)
 {
-  CopyToPMA(endpoint_no, data, length);
+  CopyToPMA32(endpoint_no, data, length);
   USB_DRD_PMABuffDescTypeDef *buff = USB_DRD_PMA_BUFF + endpoint_no;
   unsigned int temp = buff->TXBD & 0xFC00FFFF;
   buff->TXBD = temp | (length << 16);
@@ -195,13 +158,13 @@ void USB_Device_DRD::InterruptHandler()
       {
         if (value & 0x800) // setup
         {
-          CopyFromPMA(endpoint, endpoint_buffers_rx[endpoint], 8);
+          CopyFromPMA32(endpoint, endpoint_buffers_rx[endpoint], 8);
           manager->SetupPacketReceived(endpoint_buffers_rx[endpoint]);
         }
         else
         {
           unsigned int l = GetEndpointRxLength(endpoint);
-          CopyFromPMA(endpoint, endpoint_buffers_rx[endpoint], l);
+          CopyFromPMA32(endpoint, endpoint_buffers_rx[endpoint], l);
           manager->DataPacketReceived(endpoint, endpoint_buffers_rx[endpoint], l);
         }
       }

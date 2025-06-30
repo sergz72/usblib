@@ -1,20 +1,19 @@
-#ifndef USB_DEVICE_CH32X035_H
-#define USB_DEVICE_CH32X035_H
+#ifndef USB_DEVICE_STM32G4_H
+#define USB_DEVICE_STM32G4_H
 
 #include <usb_device.h>
 
-class USB_Device_CH32X035: public USB_Device {
+class USB_Device_STM32G4: public USB_Device {
   private:
     USB_DeviceManager *manager;
     unsigned char *endpoint_buffers_rx[8];
     unsigned char *endpoint_buffers_tx[8];
 
     void AssignEndpointsBuffers();
-    void AssignEndpointsModes();
-
-    unsigned int CreateEndpointBuffer(unsigned int endpoint_no);
+    void *GetEndpointInBuffer(unsigned int endpoint) const override;
+    void *GetEndpointOutBuffer(unsigned int endpoint) const override;
 public:
-    USB_Device_CH32X035();
+    USB_Device_STM32G4();
 
     void Init(USB_DeviceManager *m) override;
     void ConfigureEndpoint(unsigned int endpoint_no, USBEndpointConfiguration rx_config,
