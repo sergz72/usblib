@@ -44,7 +44,6 @@ void USB_Device_STM32G4::AssignEndpointsBuffers()
 
 USB_Device_STM32G4::USB_Device_STM32G4()
 {
-  manager = nullptr;
 }
 
 void USB_Device_STM32G4::Init(USB_DeviceManager *m)
@@ -120,16 +119,6 @@ void USB_Device_STM32G4::ConfigureEndpointTX(unsigned int endpoint_no, USBEndpoi
   value &= CHEP_RESET;
   value |= state | USB_EP_CTR_RX | USB_EP_CTR_TX;
   *reg = value;
-}
-
-void *USB_Device_STM32G4::GetEndpointInBuffer(unsigned int endpoint) const
-{
-  return endpoint_buffers_rx[endpoint];
-}
-
-void *USB_Device_STM32G4::GetEndpointOutBuffer(unsigned int endpoint) const
-{
-  return endpoint_buffers_tx[endpoint];
 }
 
 void USB_Device_STM32G4::SetEndpointData(unsigned endpoint_no, const void *data, unsigned int length)

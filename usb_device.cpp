@@ -4,6 +4,19 @@
 
 #define USB_EP_IN 0x80
 
+#ifndef __UNALIGNED_UINT32_READ(x)
+#define __UNALIGNED_UINT32_READ(x) 0
+#endif
+#ifndef __UNALIGNED_UINT32_WRITE(x, y)
+#define __UNALIGNED_UINT32_WRITE(x, y)
+#endif
+#ifndef __UNALIGNED_UINT16_READ(x)
+#define __UNALIGNED_UINT16_READ(x) 0
+#endif
+#ifndef __UNALIGNED_UINT16_WRITE(x, y)
+#define __UNALIGNED_UINT16_WRITE(x, y)
+#endif
+
 USB_DeviceManager::USB_DeviceManager(const USBDeviceConfiguration *conf,
   const USBConfigurationDescriptor *configuration_descriptor, USB_Device *dev)
 {
@@ -554,7 +567,7 @@ void USB_DeviceManager::SetupInterface(USBDeviceRequest *request)
 
 void USB_Device::CopyToPMA32(unsigned int endpoint_no, const void *data, unsigned int length) const
 {
-  unsigned int *buffer = (unsigned int*)GetEndpointOutBuffer(endpoint_no);
+  unsigned int *buffer = (unsigned int*)endpoint_buffers_tx[endpoint_no];
   unsigned char *d = (unsigned char*)data;
   if (length)
   {
@@ -573,7 +586,7 @@ void USB_Device::CopyToPMA32(unsigned int endpoint_no, const void *data, unsigne
 
 void USB_Device::CopyFromPMA32(unsigned int endpoint_no, void *data, unsigned int length) const
 {
-  unsigned int *buffer = (unsigned int*)GetEndpointInBuffer(endpoint_no);
+  unsigned int *buffer = (unsigned int*)endpoint_buffers_rx[endpoint_no];
   unsigned char *d = (unsigned char*)data;
   if (length)
   {
@@ -591,7 +604,7 @@ void USB_Device::CopyFromPMA32(unsigned int endpoint_no, void *data, unsigned in
 
 void USB_Device::CopyToPMA16(unsigned int endpoint_no, const void *data, unsigned int length) const
 {
-  unsigned short *buffer = (unsigned short*)GetEndpointOutBuffer(endpoint_no);
+  unsigned short *buffer = (unsigned short*)endpoint_buffers_tx[endpoint_no];
   unsigned char *d = (unsigned char*)data;
   if (length)
   {
@@ -610,7 +623,7 @@ void USB_Device::CopyToPMA16(unsigned int endpoint_no, const void *data, unsigne
 
 void USB_Device::CopyFromPMA16(unsigned int endpoint_no, void *data, unsigned int length) const
 {
-  unsigned short *buffer = (unsigned short*)GetEndpointInBuffer(endpoint_no);
+  unsigned short *buffer = (unsigned short*)endpoint_buffers_rx[endpoint_no];
   unsigned char *d = (unsigned char*)data;
   if (length)
   {
@@ -624,4 +637,11 @@ void USB_Device::CopyFromPMA16(unsigned int endpoint_no, void *data, unsigned in
       d += 2;
     }
   }
+}
+
+USB_Device::USB_Device()
+{
+  manager = nullptr;
+  memset(endpoint_buffers_tx, 0, sizeof(endpoint_buffers_tx));
+  memset(endpoint_buffers_rx, 0, sizeof(endpoint_buffers_rx));
 }

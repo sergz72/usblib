@@ -81,7 +81,6 @@ void USB_Device_CH32X035::AssignEndpointsModes()
 
 USB_Device_CH32X035::USB_Device_CH32X035()
 {
-  manager = nullptr;
 }
 
 void USB_Device_CH32X035::Init(USB_DeviceManager *m)

@@ -5,10 +5,6 @@
 
 class USB_Device_CH32X035: public USB_Device {
   private:
-    USB_DeviceManager *manager;
-    unsigned char *endpoint_buffers_rx[8];
-    unsigned char *endpoint_buffers_tx[8];
-
     void AssignEndpointsBuffers();
     void AssignEndpointsModes();
 

@@ -34,7 +34,6 @@ void USB_Device_DRD::AssignEndpointsBuffers()
 
 USB_Device_DRD::USB_Device_DRD()
 {
-  manager = nullptr;
 }
 
 void USB_Device_DRD::Init(USB_DeviceManager *m)
@@ -107,16 +106,6 @@ void USB_Device_DRD::ConfigureEndpointTX(unsigned int endpoint_no, USBEndpointCo
   value &= CHEP_RESET;
   value |= state;
   *reg = value;
-}
-
-void *USB_Device_DRD::GetEndpointInBuffer(unsigned int endpoint) const
-{
-  return endpoint_buffers_rx[endpoint];
-}
-
-void *USB_Device_DRD::GetEndpointOutBuffer(unsigned int endpoint) const
-{
-  return endpoint_buffers_tx[endpoint];
 }
 
 void USB_Device_DRD::SetEndpointData(unsigned endpoint_no, const void *data, unsigned int length)

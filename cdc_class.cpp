@@ -91,7 +91,7 @@ int USB_CDC_Class::InterfaceDescriptorBuilder(unsigned int port_id)
   return 0;
 }
 
-int USB_CDC_Class::DescriptorBuilder(unsigned int _num_ports)
+int USB_CDC_Class::DescriptorBuilder(unsigned int _num_ports, bool composite)
 {
   num_ports = _num_ports;
   memset(cdc_ports, 0, sizeof(cdc_ports));
@@ -99,7 +99,7 @@ int USB_CDC_Class::DescriptorBuilder(unsigned int _num_ports)
 
   for (int i = 0; i < num_ports; i++)
   {
-    if (num_ports > 1)
+    if (num_ports > 1 || composite)
       manager->AddInterfaceAssociationDescriptor(&cdc_iad);
     if (InterfaceDescriptorBuilder(i))
       return 1;

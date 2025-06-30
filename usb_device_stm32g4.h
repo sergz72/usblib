@@ -5,13 +5,7 @@
 
 class USB_Device_STM32G4: public USB_Device {
   private:
-    USB_DeviceManager *manager;
-    unsigned char *endpoint_buffers_rx[8];
-    unsigned char *endpoint_buffers_tx[8];
-
     void AssignEndpointsBuffers();
-    void *GetEndpointInBuffer(unsigned int endpoint) const override;
-    void *GetEndpointOutBuffer(unsigned int endpoint) const override;
 public:
     USB_Device_STM32G4();
 
