@@ -1,4 +1,4 @@
-# Universal USB library
+# Universal USB device library
 
 ## Features:
 
