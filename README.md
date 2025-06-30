@@ -7,11 +7,11 @@
 
 ### MCU support:
 - STM32H5 (tested on STM32H503)
+- STM32G4 (tested on STM32G431)
 - CH32X035
 
 ### Development and testing plans:
 - STM32H7
-- STM32G4
 - STM32U5
 - CH32V203
 - CH32V307
