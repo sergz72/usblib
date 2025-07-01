@@ -491,23 +491,19 @@ static void USB_WritePacket(USB_OTG_GlobalTypeDef *instance, const unsigned char
 
 void USB_Device_STM32F::SetEndpointData(unsigned int endpoint_no, const void *data, unsigned int length)
 {
+  USBx_INEP(instance, endpoint_no)->DIEPCTL |= USB_OTG_DIEPCTL_EPDIS;
   unsigned int temp = USBx_INEP(instance, endpoint_no)->DIEPTSIZ & ~(USB_OTG_DIEPTSIZ_PKTCNT | USB_OTG_DIEPTSIZ_XFRSIZ);
-  USBx_INEP(instance, endpoint_no)->DIEPTSIZ = temp | (1 << 19) | length;
   USB_WritePacket(instance, (const unsigned char *)data, endpoint_no, length);
+  USBx_INEP(instance, endpoint_no)->DIEPTSIZ = temp | (1 << 19) | length;
   ConfigureEndpointTX(endpoint_no, usb_endpoint_configuration_enabled);
 }
 
 void USB_Device_STM32F::ZeroTransfer(unsigned int endpoint_no)
 {
+  USBx_INEP(instance, endpoint_no)->DIEPCTL |= USB_OTG_DIEPCTL_EPDIS;
   unsigned int temp = USBx_INEP(instance, endpoint_no)->DIEPTSIZ & ~(USB_OTG_DIEPTSIZ_PKTCNT | USB_OTG_DIEPTSIZ_XFRSIZ);
   USBx_INEP(instance, endpoint_no)->DIEPTSIZ = temp | (1 << 19);
   ConfigureEndpointTX(endpoint_no, usb_endpoint_configuration_enabled);
-}
-
-unsigned int GetEndpointRxLength(unsigned int endpoint)
-{
-  //todo
-  return 0;
 }
 
 /**
