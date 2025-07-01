@@ -10,9 +10,15 @@
 - STM32G4 (tested on STM32G431)
 - CH32X035
 
+### Unfinished drivers (usb driver does not work correctly when debugger is attached):
+- STM32F2
+- STM32F4
+- STM32F7
+
 ### Development and testing plans:
 - STM32H7
 - STM32U5
+- STM32F3
 - CH32V203
 - CH32V307
 - GD32F303
@@ -20,6 +26,3 @@
 - MSPM0G3507
 - MCXN236VDF
 - XMC4700
-- STM32F4
-- STM32F3
-- STM32F7
