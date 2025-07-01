@@ -8,10 +8,12 @@
 ### MCU support:
 - STM32H5 (tested on STM32H503)
 - STM32G4 (tested on STM32G431)
-- STM32F2 (not tested)
-- STM32F4 (tested on STM32F411)
-- STM32F7 (tested on STM32F767 - FS & HS)
 - CH32X035
+
+### Unfinished drivers (usb driver does not work correctly when debugger is attached):
+- STM32F2
+- STM32F4
+- STM32F7
 
 ### Development and testing plans:
 - STM32H7

@@ -343,7 +343,7 @@ void USB_Device_STM32F::USB_EPInit() const
 
 void USB_Device_STM32F::AssignEndpointsBuffers()
 {
-  for (unsigned int i = 0; i <= USB_MAX_ENDPOINTS; i++)
+  for (unsigned int i = 0; i < USB_MAX_ENDPOINTS; i++)
   {
     unsigned int max_transfer_size = manager->GetEndpointMaxTransferSize(i);
     if (max_transfer_size)
@@ -437,6 +437,27 @@ void USB_Device_STM32F::ConfigureEndpoint(unsigned int endpoint_no, USBEndpointC
 
 void USB_Device_STM32F::ConfigureEndpointRX(unsigned int endpoint_no, USBEndpointConfiguration config)
 {
+  unsigned int value = USBx_OUTEP(instance, endpoint_no)->DOEPCTL & ~USB_OTG_DOEPCTL_STALL;
+  switch (config)
+  {
+    case usb_endpoint_configuration_enabled:
+    {
+      unsigned int temp = (1 << 19) | manager->GetEndpointMaxTransferSize(endpoint_no);
+      if (!endpoint_no)
+        temp |= USB_OTG_DOEPTSIZ_STUPCNT;
+      USBx_OUTEP(instance, endpoint_no)->DOEPTSIZ = temp;
+      value |= USB_OTG_DOEPCTL_CNAK | USB_OTG_DOEPCTL_EPENA;
+      break;
+    }
+    case usb_endpoint_configuration_nak: value |= USB_OTG_DOEPCTL_SNAK | USB_OTG_DOEPCTL_EPENA; break;
+    case usb_endpoint_configuration_stall: value |= USB_OTG_DOEPCTL_STALL | USB_OTG_DOEPCTL_EPENA; break;
+    default: value |= USB_OTG_DOEPCTL_EPDIS; break;
+  }
+  USBx_OUTEP(instance, endpoint_no)->DOEPCTL = value;
+}
+
+void USB_Device_STM32F::ConfigureEndpointTX(unsigned int endpoint_no, USBEndpointConfiguration config)
+{
   unsigned int value = USBx_INEP(instance, endpoint_no)->DIEPCTL & ~USB_OTG_DIEPCTL_STALL;
   switch (config)
   {
@@ -446,19 +467,6 @@ void USB_Device_STM32F::ConfigureEndpointRX(unsigned int endpoint_no, USBEndpoin
     default: value |= USB_OTG_DIEPCTL_EPDIS; break;
   }
   USBx_INEP(instance, endpoint_no)->DIEPCTL = value;
-}
-
-void USB_Device_STM32F::ConfigureEndpointTX(unsigned int endpoint_no, USBEndpointConfiguration config)
-{
-  unsigned int value = USBx_OUTEP(instance, endpoint_no)->DOEPCTL & ~USB_OTG_DOEPCTL_STALL;
-  switch (config)
-  {
-    case usb_endpoint_configuration_enabled: value |= USB_OTG_DOEPCTL_CNAK | USB_OTG_DOEPCTL_EPENA; break;
-    case usb_endpoint_configuration_nak: value |= USB_OTG_DOEPCTL_SNAK | USB_OTG_DOEPCTL_EPENA; break;
-    case usb_endpoint_configuration_stall: value |= USB_OTG_DOEPCTL_STALL | USB_OTG_DOEPCTL_EPENA; break;
-    default: value |= USB_OTG_DOEPCTL_EPDIS; break;
-  }
-  USBx_OUTEP(instance, endpoint_no)->DOEPCTL = value;
 }
 
 /**
