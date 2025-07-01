@@ -100,6 +100,9 @@ void USB_Device_CH32X035::Init(USB_DeviceManager *m)
   USBFSD->UDEV_CTRL = USBFS_UD_PD_DIS | USBFS_UD_PORT_EN;
   USBFSD->INT_EN = USBFS_UIE_SUSPEND | USBFS_UIE_BUS_RST | USBFS_UIE_TRANSFER;
 
+  if (manager->SofShouldBeEnabled())
+    USBFSD->INT_EN |= USBFS_UIE_DEV_SOF;
+
   NVIC_EnableIRQ(USBFS_IRQn);
 }
 
@@ -440,6 +443,9 @@ void USB_Device_CH32X035::InterruptHandler()
       case USBFS_UIS_TOKEN_SETUP:
         USBFSD->UEP0_CTRL_H = USBFS_UEP_T_TOG|USBFS_UEP_T_RES_NAK|USBFS_UEP_R_TOG|USBFS_UEP_R_RES_NAK;
         manager->SetupPacketReceived(endpoint_buffers_rx[0]);
+        break;
+      case USBFS_UIS_TOKEN_SOF:
+        manager->Sof();
         break;
       default: break;
     }

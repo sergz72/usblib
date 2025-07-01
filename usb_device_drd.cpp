@@ -41,7 +41,9 @@ void USB_Device_DRD::Init(USB_DeviceManager *m)
   manager = m;
   AssignEndpointsBuffers();
   USB_DRD_FS->CNTR = USB_CNTR_ERRM | USB_CNTR_PMAOVRM | USB_CNTR_CTRM | USB_CNTR_THR512M
-    | USB_CNTR_SUSPM | USB_CNTR_DCON | USB_CNTR_WKUPM | USB_CNTR_SOFM;
+    | USB_CNTR_SUSPM | USB_CNTR_DCON | USB_CNTR_WKUPM;
+  if (manager->SofShouldBeEnabled())
+    USB_DRD_FS->CNTR |= USB_CNTR_SOFM;
 }
 
 void USB_Device_DRD::Reset()
