@@ -9,15 +9,28 @@ typedef struct
   bool use_external_vbus;    /*!< Enable or disable the use of the external VBUS.                        */
 } USB_OTG_CfgTypeDef;
 
+typedef struct
+{
+  unsigned char *pointer;
+  unsigned int length;
+} USB_OTG_EPXferData;
+
 class USB_Device_STM32F: public USB_Device {
   private:
     USB_OTG_GlobalTypeDef *instance;
     const USB_OTG_CfgTypeDef *cfg;
+    USB_OTG_EPXferData xfer_data[USB_MAX_ENDPOINTS];
 
     void USB_CoreInit();
     void USB_DevInit();
     void USB_FIFO_Init() const;
-public:
+    void USB_EPInit() const;
+    void USBRSTHandler();
+    void OEPINTHandler();
+    void IEPINTHandler();
+    void InitXferBuffers();
+    void AssignEndpointsBuffers();
+  public:
     explicit USB_Device_STM32F(USB_OTG_GlobalTypeDef *_instance, const USB_OTG_CfgTypeDef *_cfg)
     {
       instance = _instance;
