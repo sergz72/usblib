@@ -324,8 +324,11 @@ void USB_Device_STM32F::USB_FIFO_Init() const
   for (i = 0; i < USB_MAX_ENDPOINTS; i++)
   {
     unsigned int size = manager->GetEndpointMaxTransferSize(i);
-    USB_SetTxFiFo(instance, i, offset, size);
-    offset += size;
+    if (size)
+    {
+      USB_SetTxFiFo(instance, i, offset, size);
+      offset += size;
+    }
   }
 }
 
@@ -364,8 +367,8 @@ void USB_Device_STM32F::Init(USB_DeviceManager *m)
   USB_EPInit();
   USB_DevInit();
 
-  //AssignEndpointsBuffers();
   USB_FIFO_Init();
+  AssignEndpointsBuffers();
 }
 
 void USB_Device_STM32F::InitXferBuffers()
@@ -403,8 +406,26 @@ void USB_Device_STM32F::SetEndpointTransferType(unsigned int endpoint, USBEndpoi
   unsigned int value_in = USBx_INEP(instance, endpoint)->DIEPCTL & ~USB_OTG_DIEPCTL_EPTYP;
   unsigned int value_out = USBx_OUTEP(instance, endpoint)->DOEPCTL & ~USB_OTG_DOEPCTL_EPTYP;
   unsigned int ttype = transfer_type << 18;
-  USBx_INEP(instance, endpoint)->DIEPCTL = value_in | ttype;
-  USBx_OUTEP(instance, endpoint)->DOEPCTL = value_out | ttype;
+  unsigned int direction = manager->GetEndpointDirection(endpoint);
+  unsigned int ep_int_pos = 1 << endpoint;
+
+  switch (direction)
+  {
+    case usb_endpoint_direction_in:
+      USBx_INEP(instance, endpoint)->DIEPCTL = value_in | ttype | USB_OTG_DIEPCTL_USBAEP | USB_OTG_DIEPCTL_SD0PID_SEVNFRM | (endpoint << 22 );
+      USBx_DEVICE(instance)->DAINTMSK |= USB_OTG_DAINTMSK_IEPM & ep_int_pos;
+      break;
+    case usb_endpoint_direction_out:
+      USBx_OUTEP(instance, endpoint)->DOEPCTL = value_out | ttype | USB_OTG_DOEPCTL_USBAEP | USB_OTG_DOEPCTL_SD0PID_SEVNFRM;
+      USBx_DEVICE(instance)->DAINTMSK |= USB_OTG_DAINTMSK_OEPM & (ep_int_pos << 16);
+      break;
+    case usb_endpoint_direction_inout:
+      USBx_INEP(instance, endpoint)->DIEPCTL = value_in | ttype | USB_OTG_DIEPCTL_USBAEP | USB_OTG_DIEPCTL_SD0PID_SEVNFRM | (endpoint << 22 );
+      USBx_DEVICE(instance)->DAINTMSK |= USB_OTG_DAINTMSK_IEPM & ep_int_pos;
+      USBx_OUTEP(instance, endpoint)->DOEPCTL = value_out | ttype | USB_OTG_DOEPCTL_USBAEP | USB_OTG_DOEPCTL_SD0PID_SEVNFRM;
+      USBx_DEVICE(instance)->DAINTMSK |= USB_OTG_DAINTMSK_OEPM & (ep_int_pos << 16);
+      break;
+  }
 }
 
 void USB_Device_STM32F::ConfigureEndpoint(unsigned int endpoint_no, USBEndpointConfiguration rx_config,
@@ -748,7 +769,7 @@ void USB_Device_STM32F::InterruptHandler()
     unsigned int temp = instance->GUSBCFG & ~USB_OTG_GUSBCFG_TRDT;
     instance->GUSBCFG = temp | (instance == USB_OTG_FS ? 6 << 10 : 9 << 10);
 
-    manager->Reset();
+    //manager->Reset();
 
     instance->GINTSTS = USB_OTG_GINTSTS_ENUMDNE;
   }
