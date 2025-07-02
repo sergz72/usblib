@@ -177,6 +177,7 @@ class USB_Device
 {
   protected:
     USB_DeviceManager *manager;
+    bool pma16_is_32;
     USB_EndpointBuffer endpoint_buffers_rx[USB_MAX_ENDPOINTS];
     unsigned char *endpoint_buffers_tx[USB_MAX_ENDPOINTS];
 

@@ -620,6 +620,8 @@ void USB_Device::CopyToPMA16(unsigned int endpoint_no, const void *data, unsigne
         length -= 2;
       else
         break;
+      if (pma16_is_32)
+        buffer++;
       d += 2;
     }
   }
@@ -638,6 +640,8 @@ void USB_Device::CopyFromPMA16(unsigned int endpoint_no, void *data, unsigned in
         length -= 2;
       else
         break;
+      if (pma16_is_32)
+        buffer++;
       d += 2;
     }
   }
@@ -646,6 +650,7 @@ void USB_Device::CopyFromPMA16(unsigned int endpoint_no, void *data, unsigned in
 USB_Device::USB_Device()
 {
   manager = nullptr;
+  pma16_is_32 = false;
   memset(endpoint_buffers_tx, 0, sizeof(endpoint_buffers_tx));
   memset(endpoint_buffers_rx, 0, sizeof(endpoint_buffers_rx));
 }
