@@ -165,13 +165,19 @@ typedef enum
   usb_endpoint_configuration_enabled = 3,
 } USBEndpointConfiguration;
 
+typedef struct
+{
+  unsigned char *pma_buffer;
+  unsigned char *buffer;
+} USB_EndpointBuffer;
+
 class USB_DeviceManager;
 
 class USB_Device
 {
   protected:
     USB_DeviceManager *manager;
-    unsigned char *endpoint_buffers_rx[USB_MAX_ENDPOINTS];
+    USB_EndpointBuffer endpoint_buffers_rx[USB_MAX_ENDPOINTS];
     unsigned char *endpoint_buffers_tx[USB_MAX_ENDPOINTS];
 
     void CopyToPMA32(unsigned int endpoint_no, const void *data, unsigned int length) const;

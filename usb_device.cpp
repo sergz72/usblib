@@ -590,7 +590,7 @@ void USB_Device::CopyToPMA32(unsigned int endpoint_no, const void *data, unsigne
 
 void USB_Device::CopyFromPMA32(unsigned int endpoint_no, void *data, unsigned int length) const
 {
-  unsigned int *buffer = (unsigned int*)endpoint_buffers_rx[endpoint_no];
+  unsigned int *buffer = (unsigned int*)endpoint_buffers_rx[endpoint_no].pma_buffer;
   unsigned char *d = (unsigned char*)data;
   if (length)
   {
@@ -627,7 +627,7 @@ void USB_Device::CopyToPMA16(unsigned int endpoint_no, const void *data, unsigne
 
 void USB_Device::CopyFromPMA16(unsigned int endpoint_no, void *data, unsigned int length) const
 {
-  unsigned short *buffer = (unsigned short*)endpoint_buffers_rx[endpoint_no];
+  unsigned short *buffer = (unsigned short*)endpoint_buffers_rx[endpoint_no].pma_buffer;
   unsigned char *d = (unsigned char*)data;
   if (length)
   {

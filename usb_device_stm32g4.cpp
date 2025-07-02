@@ -1,6 +1,7 @@
 #include "board.h"
 #include <usb_device_stm32g4.h>
 #include <cstring>
+#include <cstdlib>
 
 #define PMAADDR_OFFSET 0x40
 
@@ -36,7 +37,8 @@ void USB_Device_STM32G4::AssignEndpointsBuffers()
       unsigned int offset_tx = address + max_transfer_size;
       AssignEndpointBuffers(i, offset_rx, offset_tx, max_transfer_size);
       address = offset_tx + max_transfer_size;
-      endpoint_buffers_rx[i] = buf + offset_rx;
+      endpoint_buffers_rx[i].pma_buffer = buf + offset_rx;
+      endpoint_buffers_rx[i].buffer = (unsigned char*)malloc(max_transfer_size);
       endpoint_buffers_tx[i] = buf + offset_tx;
     }
   }
@@ -159,14 +161,14 @@ void USB_Device_STM32G4::InterruptHandler()
       {
         if (value & 0x800) // setup
         {
-          CopyFromPMA16(endpoint, endpoint_buffers_rx[endpoint], 8);
-          manager->SetupPacketReceived(endpoint_buffers_rx[endpoint]);
+          CopyFromPMA16(endpoint, endpoint_buffers_rx[endpoint].buffer, 8);
+          manager->SetupPacketReceived(endpoint_buffers_rx[endpoint].buffer);
         }
         else
         {
           unsigned int l = GetEndpointRxLength(endpoint);
-          CopyFromPMA16(endpoint, endpoint_buffers_rx[endpoint], l);
-          manager->DataPacketReceived(endpoint, endpoint_buffers_rx[endpoint], l);
+          CopyFromPMA16(endpoint, endpoint_buffers_rx[endpoint].buffer, l);
+          manager->DataPacketReceived(endpoint, endpoint_buffers_rx[endpoint].buffer, l);
         }
       }
       else

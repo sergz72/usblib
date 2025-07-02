@@ -26,7 +26,8 @@ void USB_Device_DRD::AssignEndpointsBuffers()
       unsigned int offset_tx = address + max_transfer_size;
       AssignEndpointBuffers(i, offset_rx, offset_tx, max_transfer_size);
       address = offset_tx + max_transfer_size;
-      endpoint_buffers_rx[i] = buf + offset_rx;
+      endpoint_buffers_rx[i].pma_buffer = buf + offset_rx;
+      endpoint_buffers_rx[i].buffer = (unsigned char*)malloc(max_transfer_size);
       endpoint_buffers_tx[i] = buf + offset_tx;
     }
   }
@@ -126,7 +127,7 @@ void USB_Device_DRD::ZeroTransfer(unsigned int endpoint_no)
   ConfigureEndpointTX(endpoint_no, usb_endpoint_configuration_enabled);
 }
 
-unsigned int GetEndpointRxLength(unsigned int endpoint)
+static unsigned int GetEndpointRxLength(unsigned int endpoint)
 {
   USB_DRD_PMABuffDescTypeDef *buff = USB_DRD_PMA_BUFF + endpoint;
   return (buff->RXBD & 0x3ff0000) >> 16;
@@ -149,14 +150,14 @@ void USB_Device_DRD::InterruptHandler()
       {
         if (value & 0x800) // setup
         {
-          CopyFromPMA32(endpoint, endpoint_buffers_rx[endpoint], 8);
-          manager->SetupPacketReceived(endpoint_buffers_rx[endpoint]);
+          CopyFromPMA32(endpoint, endpoint_buffers_rx[endpoint].buffer, 8);
+          manager->SetupPacketReceived(endpoint_buffers_rx[endpoint].buffer);
         }
         else
         {
           unsigned int l = GetEndpointRxLength(endpoint);
-          CopyFromPMA32(endpoint, endpoint_buffers_rx[endpoint], l);
-          manager->DataPacketReceived(endpoint, endpoint_buffers_rx[endpoint], l);
+          CopyFromPMA32(endpoint, endpoint_buffers_rx[endpoint].buffer, l);
+          manager->DataPacketReceived(endpoint, endpoint_buffers_rx[endpoint].buffer, l);
         }
       }
       else

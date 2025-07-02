@@ -347,7 +347,7 @@ void USB_Device_STM32F::AssignEndpointsBuffers()
   {
     unsigned int max_transfer_size = manager->GetEndpointMaxTransferSize(i);
     if (max_transfer_size)
-      endpoint_buffers_rx[i] = (unsigned char *)malloc(max_transfer_size);
+      endpoint_buffers_rx[i].buffer = (unsigned char *)malloc(max_transfer_size);
   }
 }
 
@@ -375,7 +375,7 @@ void USB_Device_STM32F::InitXferBuffers()
 {
   for (unsigned int i = 0; i < USB_MAX_ENDPOINTS; i++)
   {
-    xfer_data[i].pointer = endpoint_buffers_rx[i];
+    xfer_data[i].pointer = endpoint_buffers_rx[i].buffer;
     xfer_data[i].length = 0;
   }
 }
@@ -588,15 +588,15 @@ void USB_Device_STM32F::OEPINTHandler()
       {
         CLEAR_OUT_EP_INTR(instance, epnum, USB_OTG_DOEPINT_XFRC);
 
-        manager->DataPacketReceived(epnum, endpoint_buffers_rx[epnum], xfer_data[epnum].length);
+        manager->DataPacketReceived(epnum, endpoint_buffers_rx[epnum].buffer, xfer_data[epnum].length);
         xfer_data[epnum].length = 0;
-        xfer_data[epnum].pointer = endpoint_buffers_rx[epnum];
+        xfer_data[epnum].pointer = endpoint_buffers_rx[epnum].buffer;
       }
 
       if((epint & USB_OTG_DOEPINT_STUP) == USB_OTG_DOEPINT_STUP)
       {
         // Inform the upper layer that a setup packet is available
-        manager->SetupPacketReceived(endpoint_buffers_rx[epnum]);
+        manager->SetupPacketReceived(endpoint_buffers_rx[epnum].buffer);
         CLEAR_OUT_EP_INTR(instance, epnum, USB_OTG_DOEPINT_STUP);
       }
 

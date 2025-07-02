@@ -20,21 +20,21 @@ unsigned int USB_Device_CH32X035::CreateEndpointBuffer(unsigned int endpoint_no)
   {
     case usb_endpoint_direction_in:
       buffer = (unsigned char *)malloc(USB_FS_MAX_PACKET_SIZE);
-      endpoint_buffers_rx[endpoint_no] = buffer;
+      endpoint_buffers_rx[endpoint_no].buffer = buffer;
       endpoint_buffers_tx[endpoint_no] = nullptr;
       break;
     case usb_endpoint_direction_out:
       buffer = (unsigned char *)malloc(USB_FS_MAX_PACKET_SIZE);
-      endpoint_buffers_rx[endpoint_no] = nullptr;
+      endpoint_buffers_rx[endpoint_no].buffer = nullptr;
       endpoint_buffers_tx[endpoint_no] = buffer;
       break;
     case usb_endpoint_direction_inout:
       buffer = (unsigned char *)malloc(USB_FS_MAX_PACKET_SIZE*2);
-      endpoint_buffers_rx[endpoint_no] = buffer;
+      endpoint_buffers_rx[endpoint_no].buffer = buffer;
       endpoint_buffers_tx[endpoint_no] = buffer + USB_FS_MAX_PACKET_SIZE;
       break;
     default:
-      buffer = endpoint_buffers_tx[endpoint_no] = endpoint_buffers_rx[endpoint_no] = nullptr;
+      buffer = endpoint_buffers_tx[endpoint_no] = endpoint_buffers_rx[endpoint_no].buffer = nullptr;
       break;
   }
 
@@ -43,9 +43,9 @@ unsigned int USB_Device_CH32X035::CreateEndpointBuffer(unsigned int endpoint_no)
 
 void USB_Device_CH32X035::AssignEndpointsBuffers()
 {
-  endpoint_buffers_rx[0] = (unsigned char*)malloc(USB_FS_MAX_PACKET_SIZE);
-  endpoint_buffers_tx[0] = endpoint_buffers_rx[0];
-  USBFSD->UEP0_DMA = (unsigned int)endpoint_buffers_rx[0];
+  endpoint_buffers_rx[0].buffer = (unsigned char*)malloc(USB_FS_MAX_PACKET_SIZE);
+  endpoint_buffers_tx[0] = endpoint_buffers_rx[0].buffer;
+  USBFSD->UEP0_DMA = (unsigned int)endpoint_buffers_rx[0].buffer;
   USBFSD->UEP1_DMA = CreateEndpointBuffer(1);
   USBFSD->UEP2_DMA = CreateEndpointBuffer(2);
   USBFSD->UEP3_DMA = CreateEndpointBuffer(3);
@@ -437,12 +437,12 @@ void USB_Device_CH32X035::InterruptHandler()
         {
           ToggleRX(endpoint);
           unsigned int l = USBFSD->RX_LEN;
-          manager->DataPacketReceived(endpoint, endpoint_buffers_rx[endpoint], l);
+          manager->DataPacketReceived(endpoint, endpoint_buffers_rx[endpoint].buffer, l);
         }
         break;
       case USBFS_UIS_TOKEN_SETUP:
         USBFSD->UEP0_CTRL_H = USBFS_UEP_T_TOG|USBFS_UEP_T_RES_NAK|USBFS_UEP_R_TOG|USBFS_UEP_R_RES_NAK;
-        manager->SetupPacketReceived(endpoint_buffers_rx[0]);
+        manager->SetupPacketReceived(endpoint_buffers_rx[0].buffer);
         break;
       case USBFS_UIS_TOKEN_SOF:
         manager->Sof();
