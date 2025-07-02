@@ -638,8 +638,8 @@ static unsigned int USB_ReadDevInEPInterrupt(USB_OTG_GlobalTypeDef *instance, un
   unsigned int v, msk, emp;
 
   msk = USBx_DEVICE(instance)->DIEPMSK;
-  emp = USBx_DEVICE(instance)->DIEPEMPMSK;
-  msk |= ((emp >> epnum) & 0x1) << 7;
+  //emp = USBx_DEVICE(instance)->DIEPEMPMSK;
+  //msk |= ((emp >> epnum) & 0x1) << 7;
   v = USBx_INEP(instance, epnum)->DIEPINT & msk;
   return v;
 }
@@ -661,8 +661,8 @@ void USB_Device_STM32F::IEPINTHandler()
 
       if(( epint & USB_OTG_DIEPINT_XFRC) == USB_OTG_DIEPINT_XFRC)
       {
-        fifoemptymsk = 0x1 << epnum;
-        USBx_DEVICE(instance)->DIEPEMPMSK &= ~fifoemptymsk;
+        //fifoemptymsk = ~(1 << epnum);
+        //USBx_DEVICE(instance)->DIEPEMPMSK &= fifoemptymsk;
 
         CLEAR_IN_EP_INTR(instance, epnum, USB_OTG_DIEPINT_XFRC);
 
