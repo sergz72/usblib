@@ -34,10 +34,11 @@ void USB_Device_AT32F4::AssignEndpointsBuffers()
     unsigned int max_transfer_size = manager->GetEndpointMaxTransferSize(i);
     if (max_transfer_size)
     {
+      unsigned int size2 = max_transfer_size * 2;
       unsigned int offset_rx = address;
-      unsigned int offset_tx = address + max_transfer_size;
+      unsigned int offset_tx = address + size2;
       AssignEndpointBuffers(i, offset_rx, offset_tx, max_transfer_size);
-      address = offset_tx + max_transfer_size;
+      address = offset_tx + size2;
       endpoint_buffers_rx[i].pma_buffer = buf + offset_rx;
       endpoint_buffers_rx[i].buffer = (unsigned char*)malloc(max_transfer_size);
       endpoint_buffers_tx[i] = buf + offset_tx;
