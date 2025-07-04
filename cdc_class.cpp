@@ -4,13 +4,14 @@
 
 #define CDC_GET_LINE_CODING         0X21                                      /* This request allows the host to find out the currently configured line coding */
 #define CDC_SET_LINE_CODING         0x20                                      /* Configures DTE rate, stop-bits, parity, and number-of-character */
+#define CDC_SET_CONTROL_LINE_STATE  0x22
 
 #define DEF_UART_BAUDRATE       115200
 #define DEF_UART_STOPBIT        0
 #define DEF_UART_PARITY         0
 #define DEF_UART_DATABIT        8
 
-#define LINE_CODING_LENGTH 8
+#define LINE_CODING_LENGTH 7
 
 const unsigned char Com_Cfg[LINE_CODING_LENGTH] = {
   (uint8_t)(DEF_UART_BAUDRATE & 0xFF),
@@ -152,6 +153,7 @@ void USB_CDC_Class::SetupInterface(USBDeviceRequest *request)
       manager->StartTransfer(0, &Com_Cfg, LINE_CODING_LENGTH);
       break;
     case CDC_SET_LINE_CODING:
+    case CDC_SET_CONTROL_LINE_STATE:
       manager->GetDevice()->ZeroTransfer(0);
       break;
     default:
