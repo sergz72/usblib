@@ -1,5 +1,6 @@
 #include <cdc_class.h>
 #include <cstring>
+#include <stdio.h>
 #include <stdlib.h>
 
 #define CDC_GET_LINE_CODING         0X21                                      /* This request allows the host to find out the currently configured line coding */
@@ -183,4 +184,17 @@ unsigned int USB_CDC_Class::GetPendingData(unsigned int port_id, unsigned char *
       break;
   }
   return length;
+}
+
+int USB_CDC_Class::GetPendingChar(unsigned int port_id)
+{
+  auto port = &cdc_ports[port_id];
+  if (port->buffer_read_p != port->buffer_write_p)
+  {
+    unsigned char c = *port->buffer_read_p++;
+    if (port->buffer_read_p == port->buffer + buffer_length)
+      port->buffer_read_p = port->buffer;
+    return c;
+  }
+  return EOF;
 }

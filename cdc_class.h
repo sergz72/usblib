@@ -31,5 +31,6 @@ public:
     void SetupInterface(USBDeviceRequest *request) override;
     void Send(unsigned int port_id, unsigned char * buffer, unsigned int buffer_length);
     unsigned int GetPendingData(unsigned int port_id, unsigned char *buffer, unsigned int buffer_length);
+    int GetPendingChar(unsigned int port_id);
 };
 #endif
