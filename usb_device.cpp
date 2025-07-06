@@ -4,16 +4,16 @@
 
 #define USB_EP_IN 0x80
 
-#ifndef __UNALIGNED_UINT32_READ(x)
+#ifndef __UNALIGNED_UINT32_READ
 #define __UNALIGNED_UINT32_READ(x) 0
 #endif
-#ifndef __UNALIGNED_UINT32_WRITE(x, y)
+#ifndef __UNALIGNED_UINT32_WRITE
 #define __UNALIGNED_UINT32_WRITE(x, y)
 #endif
-#ifndef __UNALIGNED_UINT16_READ(x)
+#ifndef __UNALIGNED_UINT16_READ
 #define __UNALIGNED_UINT16_READ(x) 0
 #endif
-#ifndef __UNALIGNED_UINT16_WRITE(x, y)
+#ifndef __UNALIGNED_UINT16_WRITE
 #define __UNALIGNED_UINT16_WRITE(x, y)
 #endif
 

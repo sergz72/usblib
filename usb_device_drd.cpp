@@ -63,7 +63,7 @@ void USB_Device_DRD::Connect()
 void USB_Device_DRD::SetEndpointTransferType(unsigned int endpoint, USBEndpointTransferType transfer_type)
 {
   endpoint &= 0x0F;
-  unsigned long epkind;
+  uint32_t epkind;
   switch (transfer_type)
   {
     case usb_endpoint_transfer_type_control: epkind = 1 << 9; break;
@@ -71,8 +71,8 @@ void USB_Device_DRD::SetEndpointTransferType(unsigned int endpoint, USBEndpointT
     case usb_endpoint_transfer_type_interrupt: epkind = 3 << 9; break;
     default: epkind = 0; break;
   }
-  volatile unsigned long *reg = &USB_DRD_FS->CHEP0R + endpoint;
-  unsigned long value = CHEP_Read(reg);
+  volatile uint32_t *reg = &USB_DRD_FS->CHEP0R + endpoint;
+  uint32_t value = CHEP_Read(reg);
   value |= endpoint | epkind;
   *reg = value;
 }
@@ -80,9 +80,9 @@ void USB_Device_DRD::SetEndpointTransferType(unsigned int endpoint, USBEndpointT
 void USB_Device_DRD::ConfigureEndpoint(unsigned int endpoint_no, USBEndpointConfiguration rx_config,
                                         USBEndpointConfiguration tx_config)
 {
-  volatile unsigned long *reg = &USB_DRD_FS->CHEP0R + endpoint_no;
-  unsigned long value = *reg;
-  unsigned int state = value & (USB_CHEP_RX_STRX | USB_CHEP_TX_STTX);
+  volatile uint32_t *reg = &USB_DRD_FS->CHEP0R + endpoint_no;
+  uint32_t value = *reg;
+  uint32_t state = value & (USB_CHEP_RX_STRX | USB_CHEP_TX_STTX);
   state ^= (rx_config << 12) | (tx_config << 4);
   value &= CHEP_RESET;
   value |= state;
@@ -91,9 +91,9 @@ void USB_Device_DRD::ConfigureEndpoint(unsigned int endpoint_no, USBEndpointConf
 
 void USB_Device_DRD::ConfigureEndpointRX(unsigned int endpoint_no, USBEndpointConfiguration config)
 {
-  volatile unsigned long *reg = &USB_DRD_FS->CHEP0R + endpoint_no;
-  unsigned long value = *reg;
-  unsigned int state = value & USB_CHEP_RX_STRX;
+  volatile uint32_t *reg = &USB_DRD_FS->CHEP0R + endpoint_no;
+  uint32_t value = *reg;
+  uint32_t state = value & USB_CHEP_RX_STRX;
   state ^= config << 12;
   value &= CHEP_RESET;
   value |= state;
@@ -102,9 +102,9 @@ void USB_Device_DRD::ConfigureEndpointRX(unsigned int endpoint_no, USBEndpointCo
 
 void USB_Device_DRD::ConfigureEndpointTX(unsigned int endpoint_no, USBEndpointConfiguration config)
 {
-  volatile unsigned long *reg = &USB_DRD_FS->CHEP0R + endpoint_no;
-  unsigned long value = *reg;
-  unsigned int state = value & USB_CHEP_TX_STTX;
+  volatile uint32_t *reg = &USB_DRD_FS->CHEP0R + endpoint_no;
+  uint32_t value = *reg;
+  uint32_t state = value & USB_CHEP_TX_STTX;
   state ^= config << 4;
   value &= CHEP_RESET;
   value |= state;
@@ -135,15 +135,15 @@ static unsigned int GetEndpointRxLength(unsigned int endpoint)
 
 void USB_Device_DRD::InterruptHandler()
 {
-  unsigned int istr = USB_DRD_FS->ISTR;
+  uint32_t istr = USB_DRD_FS->ISTR;
   if (istr & USB_ISTR_CTR)
   {
-    unsigned int endpoint = istr & 0x0F;
-    volatile unsigned long *reg = &USB_DRD_FS->CHEP0R + endpoint;
-    unsigned long value = CHEP_Read(reg);
+    uint32_t endpoint = istr & 0x0F;
+    volatile uint32_t *reg = &USB_DRD_FS->CHEP0R + endpoint;
+    uint32_t value = CHEP_Read(reg);
     if (value & 0x8080) //vttx or vtrx
     {
-      unsigned int out = value & 0x8000;
+      uint32_t out = value & 0x8000;
       value &= ~0x8080;
       *reg = value;
       if (out)
